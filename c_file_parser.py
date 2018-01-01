@@ -39,6 +39,10 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 
+class CodeBlockNotFound(Exception):
+    pass
+
+
 class PyFileWriter(object):
     def __init__(self, *args, **kwargs):
         self.fp = open(*args, **kwargs)
@@ -89,6 +93,7 @@ class CToPyFileConverter(object):
             f.write_var("filename", "{self.name}_autogen.c".format(**locals()))
             f.write_var("outputpath", self.out_dir)
             f.write_var("indent", self.base_indent)
+            f.write("\n")
             f.write("with CFile(filename, outputpath, indent) as f:\n")
 
             # Write the data
@@ -122,16 +127,15 @@ def format_file(filename):
     """
     This function parses the file into a meaningful format
 
-    It strips out all comments, makes sure the line ends in ';'
-    This is useful so that we can write a common parser for the ldf files.
+    This is useful so that we can write a common parser for the C files.
 
     Args:
-        filename: path to the ldf file
+        filename: path to the C file
 
     Returns:
         tempdata(list) : list of all lines with comments stripped out
     """
-    global commentBlock
+
     counter = 0
     tempdata = []
     # Copy the entire file into a list
@@ -151,20 +155,70 @@ def format_file(filename):
     return tempdata
 
 
-def parse_file(file_path):
+def make_code_block(text):
+    """
+    To make appropriate code block
 
+    Args:
+        text (str): The actual text without the trailing'{'
+    """
+    text = text.strip()
+    text_lower = text.lower()
+
+    # TODO make it more robust so doesnt trigger for function names
+    class_mapping = {'if': CIf,
+                     'struct': CStruct,
+                     'union': CUnion,
+                     'switch': CSwitchBlockC}
+
+    func_ret_types = {'void', 'int', 'float', 'char', 'double'}
+
+    # First check if its not a regular function then add other types
+    if any(text.find(i) == 0 for i in func_ret_types):
+        code_block = CCodeBlock(text)
+        return code_block
+    else:
+        for item, class_type in class_mapping:
+            if item in text:
+                if 'typedef' in text:
+                    code_block = class_type(typedef=True)
+                else:
+                    code_block = class_type()
+                return code_block
+        else:
+            raise CodeBlockNotFound("No suitable code block found for {text}".format(**locals()))
+
+
+def parse_file(file_path):
+    """
+    To parse C file and make a rough template for writing C Code
+
+    Args:
+        file_path (str): Path to the C file
+    """
     # Format the file
     formatted_file = format_file(file_path)
     file_name, file_ext = os.path.splitext(os.path.basename(file_path))
 
     # Initialize python writer
-    writer = CToPyFileConverter(file_name, os.path.dirname(file_path))
+    converter = CToPyFileConverter(file_name, os.path.dirname(file_path))
+
+    code_block = None
 
     for line in formatted_file:
         # logger.info(line)
-        writer.add_line(line)
+        if line.endswith("{"):
+            code_block = make_code_block(line[:-1])
+        if "}" in line and code_block is not None:
+            instance_var = line.replace("}", "")
+            if instance_var:
+                code_block.add_instance_var(instance_var)
+            converter.add_code_block(code_block)
+            code_block = None
+        else:
+            converter.add_line(line)
 
-    writer.render()
+    converter.render()
 
     # For testing and comparison
     # TODO: delete this code after

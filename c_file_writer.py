@@ -257,7 +257,7 @@ class CIf(CCodeBlock):
 
 
 class CTypedefEnum(CCodeBlock):
-    def __init__(self, enum_name, base=None):
+    def __init__(self, enum_name="", base=None):
         """
         Class to implement switch block
 
@@ -290,6 +290,12 @@ class CTypedefEnum(CCodeBlock):
             key (str): The numerical value as key
         """
         self.add_code_line("{value} = {key}".format(**locals()), termination=",", comment=comment)
+
+    def add_instance_var(self, text):
+        """can be any string including any directive for compiler"""
+        if text:
+            block_start, block_end = self.block_segmenter
+            self.block_segmenter = block_start, "{block_end} {text};".format(**locals())
 
 
 class CSwitchCase(CCodeBlock):
@@ -403,12 +409,12 @@ class CFile(CCodeBlock):
 
 
 class CUnion(CCodeBlock):
-    def __init__(self, union_var, base=None, packed=False, typedef=False):
+    def __init__(self, union_var="", typedef=False, base=None):
         """
         Class to implement union
 
         Args:
-            packed (bool): To enable compiler packing
+            typedef (bool): To enable adding typedef in the name
             base (CSwitchCase): The base block for the switch
             union_var (str): Name of the case variable
         """
@@ -420,15 +426,18 @@ class CUnion(CCodeBlock):
         if base:
             base.add_spec_comment_line("{header} {union_var}".format(**locals()))
 
-        if packed:
-            block_segmenter = ("{", "}} {gc.c_consts.compiler_packed} {union_var};".format(gc=gc, **locals()))
-        else:
-            block_segmenter = ("{", "}} {union_var};".format(**locals()))
+        block_segmenter = ("{", "}} {union_var};".format(**locals()))
         super(CUnion, self).__init__(header, block_segmenter=block_segmenter, base=base)
+
+    def add_instance_var(self, text):
+        """can be any string including any directive for compiler"""
+        if text:
+            block_start, block_end = self.block_segmenter
+            self.block_segmenter = block_start, "{block_end} {text};".format(**locals())
 
 
 class CStruct(CCodeBlock):
-    def __init__(self, struct_var, base=None, typedef=False):
+    def __init__(self, struct_var="", typedef=False, base=None):
         """
         Class to implement struct
 
@@ -462,3 +471,8 @@ class CStruct(CCodeBlock):
         else:
             self.add_code_line("{var_type} {name}".format(**locals()), comment=comment)
 
+    def add_instance_var(self, text):
+        """can be any string including any directive for compiler"""
+        if text:
+            block_start, block_end = self.block_segmenter
+            self.block_segmenter = block_start, "{block_end} {text};".format(**locals())
