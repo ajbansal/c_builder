@@ -20,7 +20,7 @@ Author:
 # region GLOBAL IMPORTS
 
 import logging
-from io import TextIOWrapper
+import re
 
 # endregion
 # **************************
@@ -52,10 +52,23 @@ class PyFileWriter(object):
             var_value = '"{var_value}"'.format(**locals())
         self.fp.write("{indent}{var_name} = {var_value}\n".format(**locals()))
 
-    def write_code_block(self, code_block, base, indent=""):
-        class_type = code_block.key()
-        class_args = ", ".join(code_block[class_type])
-        self.write("""with {class_type}(class_args):""".format(**locals()))
+    def write_code_block(self, code_block, base, indent=" " * 4, level=1):
+        self.write("\n")
+        class_type = code_block['type']
+        class_args = ", ".join(code_block['args'] + ["base={base}".format(**locals())])
+        code_block_name = "Block_level_{level}".format(**locals())
+        self.write("""{indent}with {class_type}({class_args}) as {code_block_name}:""".format(**locals()))
+        indent += " " * 4
+        for line in code_block['lines']:
+            if isinstance(line, str):
+                line = line.replace(";", "")
+                self.write("""{indent}{code_block_name}.add_code_line(r'{line}')""".format(**locals()))
+            else:
+                self.write_code_block(line, base=code_block_name, indent=indent, level=level+1)
+        # if instance var is defined
+        instance_var = code_block['instance_var']
+        if instance_var:
+            self.write("""{indent}{code_block_name}.add_instance_var('{instance_var}')""".format(**locals()))
 
     def write(self, text, indent=""):
         if text[-1] != "\n":
@@ -116,8 +129,8 @@ class CToPyFileConverter(object):
                         py_line = r'f.write("""{item}\n""")'.format(**locals())
                         f.write(py_line, self.base_indent)
                 else:
-
-                    logger.warning("NotImplemented for type - {}".format(type(item)))
+                    # For code blocks
+                    f.write(r'f.write("\n")', self.base_indent)
                     f.write_code_block(item, base='f')
 
     def add_line(self, value):
@@ -154,7 +167,7 @@ def format_file(filename):
             elif line.endswith(b"}"):
                 tempdata.append(line[:-1].decode("utf-8"))
                 tempdata.append("}")
-            elif line == '':
+            elif line == b'':
                 pass
             else:
                 tempdata.append(line.decode("utf-8"))
@@ -185,7 +198,7 @@ def make_code_block(text):
     # First check if its not a regular function then add other types
     if any(text.find(i) == 0 for i in func_ret_types):
         code_block_dict = {'type': 'CCodeBlock',
-                           'args': [text],
+                           'args': ['"{}"'.format(text)],
                            'lines': [],
                            'instance_var': []}
         return code_block_dict
@@ -197,9 +210,14 @@ def make_code_block(text):
                                        'args': ["typedef=True"],
                                        'lines': [],
                                        'instance_var': []}
-                elif class_type is CIf or CFor:
+                elif class_type in ['CIf', 'CFor']:
+                    if class_type == 'CIf':
+                        pattern = re.compile(re.escape('if'), re.IGNORECASE)
+                    else:
+                        pattern = re.compile(re.escape('for'), re.IGNORECASE)
+                    text = pattern.sub('', text).strip()
                     code_block_dict = {'type': class_type,
-                                       'args': [(" ".join(text.split(" ")[1:]))],
+                                       'args': ['"{text}"'.format(**locals())],
                                        'lines': [],
                                        'instance_var': []}
                 else:

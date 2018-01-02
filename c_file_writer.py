@@ -330,8 +330,11 @@ class CTypedefEnum(CCodeBlock):
     def add_instance_var(self, text):
         """can be any string including any directive for compiler"""
         if text:
+            text = text.strip()
             block_start, block_end = self.block_segmenter
-            self.block_segmenter = block_start, "{block_end} {text};".format(**locals())
+            block_end = block_end.replace(";", "")
+            text = text if text[-1] == ';' else text + " ;"
+            self.block_segmenter = block_start, "{block_end} {text}".format(**locals())
 
 
 class CSwitchCase(CCodeBlock):
@@ -459,17 +462,17 @@ class CUnion(CCodeBlock):
         else:
             header = "union"
 
-        if base:
-            base.add_spec_comment_line("{header} {union_var}".format(**locals()))
-
         block_segmenter = ("{", "}} {union_var};".format(**locals()))
         super(CUnion, self).__init__(header, block_segmenter=block_segmenter, base=base)
 
     def add_instance_var(self, text):
         """can be any string including any directive for compiler"""
         if text:
+            text = text.strip()
             block_start, block_end = self.block_segmenter
-            self.block_segmenter = block_start, "{block_end} {text};".format(**locals())
+            block_end = block_end.replace(";", "")
+            text = text if text[-1] == ';' else text + " ;"
+            self.block_segmenter = block_start, "{block_end} {text}".format(**locals())
 
 
 class CStruct(CCodeBlock):
@@ -485,9 +488,6 @@ class CStruct(CCodeBlock):
             header = "typedef struct"
         else:
             header = "struct"
-
-        if base:
-            base.add_spec_comment_line("{header} {struct_var}".format(**locals()))
 
         block_segmenter = ("{", "}} {struct_var};".format(**locals()))
         super(CStruct, self).__init__(header, block_segmenter=block_segmenter, base=base)
@@ -510,5 +510,7 @@ class CStruct(CCodeBlock):
     def add_instance_var(self, text):
         """can be any string including any directive for compiler"""
         if text:
+            text = text.strip()
             block_start, block_end = self.block_segmenter
-            self.block_segmenter = block_start, "{block_end} {text};".format(**locals())
+            block_end = block_end.replace(";", "")
+            self.block_segmenter = block_start, "{block_end} {text}".format(**locals())
