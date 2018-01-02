@@ -52,6 +52,11 @@ class PyFileWriter(object):
             var_value = '"{var_value}"'.format(**locals())
         self.fp.write("{indent}{var_name} = {var_value}\n".format(**locals()))
 
+    def write_code_block(self, code_block, base, indent=""):
+        class_type = code_block.key()
+        class_args = ", ".join(code_block[class_type])
+        self.write("""with {class_type}(class_args):""".format(**locals()))
+
     def write(self, text, indent=""):
         if text[-1] != "\n":
             text += "\n"
@@ -111,15 +116,17 @@ class CToPyFileConverter(object):
                         py_line = r'f.write("""{item}\n""")'.format(**locals())
                         f.write(py_line, self.base_indent)
                 else:
+
                     logger.warning("NotImplemented for type - {}".format(type(item)))
+                    f.write_code_block(item, base='f')
 
     def add_line(self, value):
         self.data.append(value)
 
     def add_code_block(self, code_block):
-        assert isinstance(code_block, CCodeBlock), \
+        assert isinstance(code_block, dict), \
             "Incorrect type of value passed - {}".format(type(code_block))
-        self.code_block[code_block.name] = code_block
+        # self.code_block[code_block[type]] = code_block
         self.data.append(code_block)
 
 
@@ -166,25 +173,41 @@ def make_code_block(text):
     text_lower = text.lower()
 
     # TODO make it more robust so doesnt trigger for function names
-    class_mapping = {'if': CIf,
-                     'struct': CStruct,
-                     'union': CUnion,
-                     'switch': CSwitchBlockC}
+    class_mapping = {'if': 'CIf',
+                     'struct': 'CStruct',
+                     'union': 'CUnion',
+                     'switch': 'CSwitchBlockC',
+                     'else': 'CElse',
+                     'for': 'CFor'}
 
     func_ret_types = {'void', 'int', 'float', 'char', 'double'}
 
     # First check if its not a regular function then add other types
     if any(text.find(i) == 0 for i in func_ret_types):
-        code_block = CCodeBlock(text)
-        return code_block
+        code_block_dict = {'type': 'CCodeBlock',
+                           'args': [text],
+                           'lines': [],
+                           'instance_var': []}
+        return code_block_dict
     else:
-        for item, class_type in class_mapping:
+        for item, class_type in class_mapping.items():
             if item in text:
                 if 'typedef' in text:
-                    code_block = class_type(typedef=True)
+                    code_block_dict = {'type': class_type,
+                                       'args': ["typedef=True"],
+                                       'lines': [],
+                                       'instance_var': []}
+                elif class_type is CIf or CFor:
+                    code_block_dict = {'type': class_type,
+                                       'args': [(" ".join(text.split(" ")[1:]))],
+                                       'lines': [],
+                                       'instance_var': []}
                 else:
-                    code_block = class_type()
-                return code_block
+                    code_block_dict = {'type': class_type,
+                                       'args': [],
+                                       'lines': [],
+                                       'instance_var': []}
+                return code_block_dict
         else:
             raise CodeBlockNotFound("No suitable code block found for {text}".format(**locals()))
 
@@ -203,20 +226,34 @@ def parse_file(file_path):
     # Initialize python writer
     converter = CToPyFileConverter(file_name, os.path.dirname(file_path))
 
-    code_block = None
+    code_block_lineage = []
 
     for line in formatted_file:
         # logger.info(line)
+        # To start a new or nested code block
         if line.endswith("{"):
-            code_block = make_code_block(line[:-1])
-        if "}" in line and code_block is not None:
+            code_block_lineage.append(make_code_block(line[:-1]))
+        # To end a code block
+        elif "}" in line and "=" not in line and code_block_lineage:
             instance_var = line.replace("}", "")
+
+            # Add instance var
             if instance_var:
-                code_block.add_instance_var(instance_var)
-            converter.add_code_block(code_block)
-            code_block = None
+                code_block_lineage[-1]['instance_var'] = instance_var
+
+            # Add base code block
+            if len(code_block_lineage) == 1:
+                converter.add_code_block(code_block_lineage.pop())
+            else:
+                # Nested code block
+                code_block_lineage[-2]['lines'].append(code_block_lineage.pop())
         else:
-            converter.add_line(line)
+            # If code block exist add it to last code block
+            if code_block_lineage:
+                code_block_lineage[-1]['lines'].append(line)
+            else:
+                # Else add it to the base
+                converter.add_line(line)
 
     converter.render()
 

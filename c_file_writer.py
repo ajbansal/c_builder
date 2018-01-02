@@ -174,6 +174,23 @@ class CCodeBlock(object):
         """To keep legacy code"""
         self.data.append(line)
 
+    def close(self):
+        """To do the closing steps for the code block"""
+        # add the block segmenter
+        if isinstance(self, CCommentBlockC):
+            if self.data[-2] != self.block_segmenter[1]:
+                self.data.append("{}{}".format(self.start_indent, self.block_segmenter[1]))
+        else:
+            if self.data[-1] != self.block_segmenter[1]:
+                self.data.append("{}{}".format(self.start_indent, self.block_segmenter[1]))
+
+        # If the object has comment block, ensure we have closed it
+        if getattr(self, "comment_block", None):
+            self.comment_block.close()
+            self.data = self.comment_block.data + self.data
+
+        self.data.append("\n\n")
+
     @staticmethod
     def _line(line, comment="", termination=";", comment_char="//", new_lines=1):
         """
@@ -212,22 +229,16 @@ class CCodeBlock(object):
         if self.base_code_block:
             self.base_code_block.add_block(self)
 
-    def close(self):
-        """To do the closing steps for the code block"""
-        # add the block segmenter
-        if isinstance(self, CCommentBlockC):
-            if self.data[-2] != self.block_segmenter[1]:
-                self.data.append("{}{}".format(self.start_indent, self.block_segmenter[1]))
+    def __str__(self):
+        class_type = type(self)
+        if self.name:
+            return "{self.name}({class_type})".format(**locals())
         else:
-            if self.data[-1] != self.block_segmenter[1]:
-                self.data.append("{}{}".format(self.start_indent, self.block_segmenter[1]))
+            prefix = self.data[0].replace("\n", "")
+            return "{prefix}({class_type})".format(**locals())
 
-        # If the object has comment block, ensure we have closed it
-        if getattr(self, "comment_block", None):
-            self.comment_block.close()
-            self.data = self.comment_block.data + self.data
-
-        self.data.append("\n\n")
+    def __repr__(self):
+        return self.__str__()
 
 
 class CSwitchBlockC(CCodeBlock):
@@ -246,14 +257,39 @@ class CSwitchBlockC(CCodeBlock):
 class CIf(CCodeBlock):
     def __init__(self, if_var, base=None):
         """
-        Class to implement switch block
+        Class to implement if block
+
+        Args:
+            base (CCodeBlock): The base block for the if block
+            if_var (str): Name of the switch variable
+        """
+        header = "if ({if_var})".format(**locals())
+        super(CIf, self).__init__(header, base=base)
+
+
+class CElse(CCodeBlock):
+    def __init__(self, base=None):
+        """
+        Class to implement else block
+
+        Args:
+            base (CCodeBlock): The base block for the else block
+        """
+        header = "else"
+        super(CElse, self).__init__(header, base=base)
+
+
+class CFor(CCodeBlock):
+    def __init__(self, for_var, base=None):
+        """
+        Class to implement for block
 
         Args:
             base (CCodeBlock): The base block for the switch
             if_var (str): Name of the switch variable
         """
-        header = "if ({if_var})".format(**locals())
-        super(CIf, self).__init__(header, base=base)
+        header = "for ({for_var})".format(**locals())
+        super(CFor, self).__init__(header, base=base)
 
 
 class CTypedefEnum(CCodeBlock):
