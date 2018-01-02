@@ -16,8 +16,14 @@ Author:
 
 """
 
+# **************************
+# region GLOBAL IMPORTS
+
 import os
 import logging
+
+# endregion
+# **************************
 
 # For logging
 logger = logging.getLogger(__name__)

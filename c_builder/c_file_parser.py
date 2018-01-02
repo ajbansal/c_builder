@@ -28,7 +28,7 @@ import re
 # **************************
 # region LOCAL IMPORTS
 
-from c_file_writer import *
+from c_builder.c_file_writer import *
 import log
 
 # endregion
@@ -275,15 +275,10 @@ def parse_file(file_path):
 
     converter.render()
 
-    # For testing and comparison
-    # TODO: delete this code after
-    with open("test.c", 'w') as f:
-        f.write("\n".join(formatted_file))
-
 
 if __name__ == '__main__':
     # Set up logging
     logger = log.setup_console_logger(__name__)
     logger.setLevel(logging.INFO)
 
-    parse_file(r'c_test.c')
+    parse_file(r'..\c_test.c')
