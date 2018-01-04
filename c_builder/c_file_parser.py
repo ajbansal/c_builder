@@ -107,7 +107,7 @@ class CToPyFileConverter(object):
     def render(self):
         py_file_name = "{self.name}_gen.py".format(**locals())
         with PyFileWriter(py_file_name, 'w') as f:
-            f.write("from c_file_writer import *\n\n")
+            f.write("from c_builder.c_file_writer import *\n\n")
             f.write_var("filename", "{self.name}_autogen.c".format(**locals()))
             f.write_var("outputpath", self.out_dir)
             f.write_var("indent", self.base_indent)
@@ -204,20 +204,25 @@ def make_code_block(text):
         return code_block_dict
     else:
         for item, class_type in class_mapping.items():
+            args = []
             if item in text:
                 if 'typedef' in text:
-                    code_block_dict = {'type': class_type,
-                                       'args': ["typedef=True"],
-                                       'lines': [],
-                                       'instance_var': []}
-                elif class_type in ['CIf', 'CFor']:
+                    args = ["typedef=True"]
+                    pattern = re.compile(re.escape('typedef'), re.IGNORECASE)
+                    text = pattern.sub('', text).strip()
+
+                if class_type in ['CIf', 'CFor', 'CStruct', 'CUnion']:
                     if class_type == 'CIf':
                         pattern = re.compile(re.escape('if'), re.IGNORECASE)
+                    elif class_type == 'CStruct':
+                        pattern = re.compile(re.escape('struct'), re.IGNORECASE)
+                    elif class_type == 'CUnion':
+                        pattern = re.compile(re.escape('union'), re.IGNORECASE)
                     else:
                         pattern = re.compile(re.escape('for'), re.IGNORECASE)
                     text = pattern.sub('', text).strip()
                     code_block_dict = {'type': class_type,
-                                       'args': ['"{text}"'.format(**locals())],
+                                       'args': ['"{text}"'.format(**locals())] + args,
                                        'lines': [],
                                        'instance_var': []}
                 else:
