@@ -267,10 +267,23 @@ class CIf(CCodeBlock):
 
         Args:
             base (CCodeBlock): The base block for the if block
-            if_var (str): Name of the switch variable
+            if_var (str): If condition
         """
         header = "if ({if_var})".format(**locals())
         super(CIf, self).__init__(header, base=base)
+
+
+class CElif(CCodeBlock):
+    def __init__(self, elif_var, base=None):
+        """
+        Class to implement elif block
+
+        Args:
+            base (CCodeBlock): The base block for the elif block
+            elif_var (str): If condition
+        """
+        header = "elif ({if_var})".format(**locals())
+        super(CElif, self).__init__(header, base=base)
 
 
 class CElse(CCodeBlock):
@@ -292,22 +305,25 @@ class CFor(CCodeBlock):
 
         Args:
             base (CCodeBlock): The base block for the switch
-            if_var (str): Name of the switch variable
+            for_var (str): The for condition
         """
         header = "for ({for_var})".format(**locals())
         super(CFor, self).__init__(header, base=base)
 
 
 class CTypedefEnum(CCodeBlock):
-    def __init__(self, enum_name="", base=None):
+    def __init__(self, block_type="", enum_name="", base=None):
         """
-        Class to implement switch block
+        Class to implement Enum
 
         Args:
+            block_type (str): The type of block, in essence the new data type for the struct
             base (CCodeBlock): The base block for the switch
             enum_name (str): Name of the enum variable
         """
         header = "typedef enum"
+        header = " ".join([header, block_type])
+
         segmenter = ("{", "}} {enum_name};".format(**locals()))
         super(CTypedefEnum, self).__init__(header, base=base, block_segmenter=segmenter)
 
@@ -454,11 +470,12 @@ class CFile(CCodeBlock):
 
 
 class CUnion(CCodeBlock):
-    def __init__(self, union_var="", typedef=False, base=None):
+    def __init__(self, block_type="", union_var="", typedef=False, base=None):
         """
         Class to implement union
 
         Args:
+            block_type (str): The type of block, in essence the new data type for the struct
             typedef (bool): To enable adding typedef in the name
             base (CSwitchCase): The base block for the switch
             union_var (str): Name of the case variable
@@ -467,6 +484,8 @@ class CUnion(CCodeBlock):
             header = "typedef union"
         else:
             header = "union"
+
+        header = " ".join([header, block_type])
 
         block_segmenter = ("{", "}} {union_var};".format(**locals()))
         super(CUnion, self).__init__(header, block_segmenter=block_segmenter, base=base)
@@ -482,18 +501,21 @@ class CUnion(CCodeBlock):
 
 
 class CStruct(CCodeBlock):
-    def __init__(self, struct_var="", typedef=False, base=None):
+    def __init__(self, block_type="", struct_var="", typedef=False, base=None):
         """
         Class to implement struct
 
         Args:
+            block_type (str): The type of block, in essence the new data type for the struct
             base (CSwitchCase): The base block for the switch
-            struct_var (str): Name of the case variable
+            struct_var (str): Name of the case variable or any other pragma
         """
         if typedef:
             header = "typedef struct"
         else:
             header = "struct"
+
+        header = " ".join([header, block_type])
 
         block_segmenter = ("{", "}} {struct_var};".format(**locals()))
         super(CStruct, self).__init__(header, block_segmenter=block_segmenter, base=base)
