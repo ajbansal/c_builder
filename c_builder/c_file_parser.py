@@ -235,7 +235,7 @@ def make_code_block(text):
             raise CodeBlockNotFound("No suitable code block found for {text}".format(**locals()))
 
 
-def parse_file(file_path):
+def parse_file(file_path, output_path=""):
     """
     To parse C file and make a rough template for writing C Code
 
@@ -247,7 +247,10 @@ def parse_file(file_path):
     file_name, file_ext = os.path.splitext(os.path.basename(file_path))
 
     # Initialize python writer
-    converter = CToPyFileConverter(file_name, os.path.dirname(file_path))
+    if not output_path:
+        output_path = os.path.dirname(file_path)
+
+    converter = CToPyFileConverter(file_name, output_path)
 
     code_block_lineage = []
 

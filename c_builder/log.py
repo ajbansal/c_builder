@@ -177,14 +177,41 @@ class ColorizingStreamHandler(logging.StreamHandler):
         return message
 
 
-def setup_console_logger(name, level=logging.INFO):
-    """Setup a project wide logger singleton"""
-    formatter = logging.Formatter(fmt='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+def setup_console_logger(name, level=logging.INFO,
+                         formatter='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                         handler=ColorizingStreamHandler()):
+    """Setup a console logger"""
+    formatter = logging.Formatter(fmt=formatter)
 
-    handler = ColorizingStreamHandler()
     handler.setFormatter(formatter)
     handler.setLevel(level)
 
     logger = logging.getLogger(name)
     logger.addHandler(handler)
     return logger
+
+
+def setup_file_logger(file_path, name, level=logging.INFO,
+                      formatter='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                      max_bytes=2000000, backup_count=5):
+
+    """Setup a file logger"""
+    formatter = logging.Formatter(fmt=formatter)
+
+    handler = RotatingFileHandler(file_path, maxBytes=max_bytes, backupCount=backup_count)
+    handler.setFormatter(formatter)
+    handler.setLevel(level)
+
+    logger = logging.getLogger(name)
+    logger.addHandler(handler)
+    return logger
+
+
+def set_handler_level(logger, level):
+    for handler in logger.handlers:
+        handler.setLevel(level)
+
+
+def disable_handlers(logger):
+    logger.handlers = []
+    logger.addHandler(logging.NullHandler())
