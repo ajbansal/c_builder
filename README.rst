@@ -85,6 +85,7 @@ Version History
 ---------------
 
 0.0.1 : Initial version, tested upload to pypi
+
 0.0.2 : More support and documentation
 
 
