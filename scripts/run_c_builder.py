@@ -65,7 +65,11 @@ def main():
             raise Exception("Parent directory for given logger file - {}, does not exist".format(args.log_file))
 
     # Now start the process
-    input_files = args.input_files.split(',')
+    try:
+        input_files = args.input_files.split(',')
+    except AttributeError:
+        logger.exception("Input files not specified")
+        sys.exit(1)
 
     output_dir = args.output_dir
 
@@ -74,7 +78,7 @@ def main():
         if len(output_dir) != len(input_files):
             raise ValueError("Incorrect number of input file and output directory given")
     else:
-        output_dir = ['' for i in input_files]
+        output_dir = ['' for _ in input_files]
 
     for file_path, output_dir in zip(input_files, output_dir):
         logger.info("Working on file - {}".format(file_path))

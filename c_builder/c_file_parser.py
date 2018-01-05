@@ -29,7 +29,7 @@ import re
 # region LOCAL IMPORTS
 
 from c_builder.c_file_writer import *
-import log
+from c_builder import log
 
 # endregion
 # **************************
