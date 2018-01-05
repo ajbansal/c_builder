@@ -10,19 +10,24 @@ if %1%==test (
 if %1%==upload_test (
     rmdir dist /s /q
     python setup.py sdist
-    twine upload --repository pypitest dist/*
+    echo "YOU ARE UPLOADING TO MAIN PYPI REPO"
+    echo "Checklist"
+    echo "1. Have you done the readme?"
+    set /p proceed=Do you want to proceed [yes/no]?
+    if %proceed%==yes (
+        twine upload --repository pypitest dist/*
+    )
 )
 
 if %1%==upload_main (
     rmdir dist /s /q
     python setup.py sdist
     echo "YOU ARE UPLOADING TO MAIN PYPI REPO"
+    echo "Checklist"
+    echo "1. Have you done the readme?"
     set /p proceed=Do you want to proceed [yes/no]?
     if %proceed%==yes (
-        set /p readme=Have you updated readme [yes/no]?
-        if %readme%==yes (
-            twine upload --repository pypi dist/*
-        )
+        twine upload --repository pypi dist/*
     )
 )
 

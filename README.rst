@@ -84,7 +84,7 @@ Future
 Version History
 ---------------
 
-0.0.3 : Fix for package installation
+0.0.6 : Fix for package installation
 
 0.0.2 : More support and documentation
 
