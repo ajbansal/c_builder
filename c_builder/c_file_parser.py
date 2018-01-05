@@ -47,9 +47,12 @@ class PyFileWriter(object):
     def __init__(self, *args, **kwargs):
         self.fp = open(*args, **kwargs)
 
-    def write_var(self, var_name, var_value, indent=""):
+    def write_var(self, var_name, var_value, indent="", raw=False):
         if isinstance(var_value, str):
-            var_value = '"{var_value}"'.format(**locals())
+            if raw:
+                var_value = 'r"{var_value}"'.format(**locals())
+            else:
+                var_value = '"{var_value}"'.format(**locals())
         self.fp.write("{indent}{var_name} = {var_value}\n".format(**locals()))
 
     def write_code_block(self, code_block, base, indent=" " * 4, level=1):
@@ -106,10 +109,11 @@ class CToPyFileConverter(object):
 
     def render(self):
         py_file_name = "{self.name}_gen.py".format(**locals())
-        with PyFileWriter(py_file_name, 'w') as f:
+        py_file_path = os.path.join(self.out_dir, py_file_name)
+        with PyFileWriter(py_file_path, 'w') as f:
             f.write("from c_builder.c_file_writer import *\n\n")
-            f.write_var("filename", "{self.name}_autogen.c".format(**locals()))
-            f.write_var("outputpath", self.out_dir)
+            f.write_var("filename", "{self.name}_autogen.c".format(**locals()), raw=True)
+            f.write_var("outputpath", self.out_dir, raw=True)
             f.write_var("indent", self.base_indent)
             f.write("\n")
             f.write("with CFile(filename, outputpath, indent) as f:\n")
@@ -289,4 +293,4 @@ if __name__ == '__main__':
     logger = log.setup_console_logger(__name__)
     logger.setLevel(logging.INFO)
 
-    parse_file(r'..\c_test.c')
+    parse_file(r'E:\Projects\c_builder\tests\c_test.c')
