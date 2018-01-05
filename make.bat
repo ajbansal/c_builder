@@ -8,11 +8,13 @@ if %1%==test (
 )
 
 if %1%==upload_test (
+    rmdir dist /s -y
     python setup.py sdist
     twine upload --repository pypitest dist/*
 )
 
 if %1%==upload_main (
+    rmdir dist /s -y
     python setup.py sdist
     echo "YOU ARE UPLOADING TO MAIN PYPI REPO"
     set /p proceed=Do you want to proceed [yes/no]?

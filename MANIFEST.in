@@ -1,0 +1,2 @@
+include README.rst
+include c_builder/tests/c_test.c
