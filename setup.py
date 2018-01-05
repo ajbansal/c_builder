@@ -37,6 +37,6 @@ setup(name='c_builder',
             'Development Status :: 3 - Alpha',
             'License :: OSI Approved :: MIT License',
             'Programming Language :: Python :: 3.6',
-            'Topic :: C Programming :: C',
+            'Topic :: Software Development :: Code Generators',
       ],
       )
