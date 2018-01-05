@@ -137,6 +137,8 @@ class CToPyFileConverter(object):
                     f.write(r'f.write("\n")', self.base_indent)
                     f.write_code_block(item, base='f')
 
+        return py_file_path
+
     def add_line(self, value):
         self.data.append(value)
 
@@ -285,7 +287,7 @@ def parse_file(file_path, output_path=""):
                 # Else add it to the base
                 converter.add_line(line)
 
-    converter.render()
+    return converter.render()
 
 
 if __name__ == '__main__':
